@@ -34,15 +34,16 @@ Users can upload documents, extract structured information, and ask natural lang
 
 ### Document Upload
 
-![Upload](screenshots/upload-success.png)
+![Upload](Screenshots/upload-success.png)
 
 ### Structured Extraction
 
-![Extract](screenshots/extract-success.png)
+![Extract](Screenshots/extract-success.png)
 
 ### Semantic Query & Citations
 
-![RAG](screenshots/query-success.png)
+![RAG](Screenshots/extract-success.png)
+
 
 ## Highlights
 
