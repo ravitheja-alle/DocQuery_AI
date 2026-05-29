@@ -219,26 +219,21 @@ __CITATIONS__
 
 
 
-## 3. Operational Setup
+## 3. Local Development
 
-### Environment Configuration (`.env`)
-
-```env
-DATABASE_URL=postgresql+asyncpg://postgres.[ID]:[PASS]@aws-0-region.pooler.supabase.com:6543/postgres
-OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxx
-
-```
-
-### Production Execution via Docker
 
 ```bash
-# Build the production container
-docker build -t headless-doc-api .
+git clone <repository-url>
+cd docquery-ai
 
-# Run container locally matching Render execution matrix
-docker run -p 8000:8000 --env-file .env headless-doc-api
+python -m venv venv
+source venv/bin/activate
 
+pip install -r requirements.txt
+
+uvicorn app.main:app --reload
 ```
 
----
+The application requires PostgreSQL with pgvector enabled and appropriate environment variables configured before execution.
+
 
