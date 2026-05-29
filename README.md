@@ -1,4 +1,4 @@
-# Headless Document Intelligence API
+# DocQuery AI
 
 A production-grade AI document processing backend built with FastAPI, PostgreSQL, pgvector, and Retrieval-Augmented Generation (RAG).
 
@@ -34,7 +34,7 @@ graph TD
     D -- No (<50 chars) --> F[pdfplumber + Tesseract OCR]
     E --> G[Tiktoken Chunker]
     F --> G
-    G --> H[OpenAI text-embedding-3-small]
+    G --> H[Local Embedding Model (Sentence Transformers)]
     H --> I[(Supabase PostgreSQL + pgvector)]
 
     %% Extraction Pipeline
@@ -42,7 +42,7 @@ graph TD
     K --> L[Fetch Full Sequential Text]
     L --> I
     L --> M[Dynamic Pydantic Schema Generator]
-    M --> N[OpenAI gpt-4o-mini Native Structured Output]
+    M --> N[Local Embedding Model (Sentence Transformers) Structured Output]
     N --> O[Client: Validated JSON Object]
 
     %% RAG Pipeline
@@ -51,7 +51,7 @@ graph TD
     R --> S[Cosine Distance Query <=> ]
     S --> I
     S --> T[Format Text Context Window]
-    T --> U[OpenAI gpt-4o-mini Stream Response]
+    T --> U[Local Embedding Model (Sentence Transformers) Stream Response]
     U --> V[Client: SSE Text Stream + JSON Citations]
 
 ```
