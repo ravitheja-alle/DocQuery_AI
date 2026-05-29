@@ -1,0 +1,251 @@
+# Headless Document Intelligence API
+
+A production-grade AI document processing backend built with FastAPI, PostgreSQL, pgvector, and Retrieval-Augmented Generation (RAG).
+
+The system allows users to upload PDF documents, automatically extract and process text, generate vector embeddings, perform semantic search, and query documents using natural language.
+
+**Key capabilities**:
+
+* PDF ingestion and processing
+* OCR fallback for scanned documents
+* Vector search using pgvector
+* Structured JSON extraction
+* Citation-aware RAG responses
+* Dockerized cloud deployment
+* Production-ready REST API
+
+**Production Deployment URL:** `https://raggg.up.railway.app`
+
+**API Documentation:** `https://raggg.up.railway.app/docs`
+
+---
+
+## 1. System Architecture
+
+The following diagram illustrates the complete end-to-end data processing orchestration, from document ingestion to vector search execution and RAG streaming.
+
+```mermaid
+graph TD
+    %% Ingestion Pipeline
+    A[Client: POST /upload] --> B[FastAPI Router]
+    B --> C[DocumentParser Service]
+    C --> D{Native Text Found?}
+    D -- Yes --> E[PyMuPDF Engine]
+    D -- No (<50 chars) --> F[pdfplumber + Tesseract OCR]
+    E --> G[Tiktoken Chunker]
+    F --> G
+    G --> H[OpenAI text-embedding-3-small]
+    H --> I[(Supabase PostgreSQL + pgvector)]
+
+    %% Extraction Pipeline
+    J[Client: POST /extract] --> K[FastAPI Router]
+    K --> L[Fetch Full Sequential Text]
+    L --> I
+    L --> M[Dynamic Pydantic Schema Generator]
+    M --> N[OpenAI gpt-4o-mini Native Structured Output]
+    N --> O[Client: Validated JSON Object]
+
+    %% RAG Pipeline
+    P[Client: POST /query] --> Q[FastAPI Router]
+    Q --> R[Generate Query Embedding]
+    R --> S[Cosine Distance Query <=> ]
+    S --> I
+    S --> T[Format Text Context Window]
+    T --> U[OpenAI gpt-4o-mini Stream Response]
+    U --> V[Client: SSE Text Stream + JSON Citations]
+
+```
+## Tech Stack
+
+### Backend
+
+* Python 3.11
+* FastAPI
+* Async SQLAlchemy
+
+### Database
+
+* PostgreSQL
+* Supabase
+* pgvector
+
+### AI & Search
+
+* OpenAI
+* Sentence Transformers
+* Retrieval-Augmented Generation (RAG)
+
+### Document Processing
+
+* PyMuPDF
+* pdfplumber
+* Tesseract OCR
+
+### Infrastructure
+
+* Docker
+* Railway
+
+---
+
+## 2. API Contract Specification
+
+### Ingestion Engine
+
+* **Endpoint:** `POST /api/v1/documents/upload`
+* **Content-Type:** `multipart/form-data`
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `file` | Binary (PDF) | Yes | Target PDF file to segment, vectorize, and index. |
+
+**Response (`200 OK`):**
+
+```json
+{
+  "document_id": "423f7c46-9d2a-412e-a5be-9a3b2b1a8f33",
+  "status": "processed",
+  "chunks_stored": 45
+}
+
+```
+
+### Structured Data Extraction
+
+* **Endpoint:** `POST /api/v1/documents/{document_id}/extract`
+* **Content-Type:** `application/json`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `fields` | Array[String] | Yes | Keys or entities to discover and format. |
+| `mock` | Boolean | No | Bypass upstream LLM calls during execution testing. |
+
+**Request Body:**
+
+```json
+{
+  "fields": ["total_amount", "vendor_name", "invoice_date"],
+  "mock": false
+}
+
+```
+
+**Response (`200 OK`):**
+
+```json
+{
+  "total_amount": "$4,500.00",
+  "vendor_name": "Acme Corp",
+  "invoice_date": "2023-10-24"
+}
+
+```
+
+### Contextual RAG Search
+
+* **Endpoint:** `POST /api/v1/documents/query`
+* **Content-Type:** `application/json`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `query` | String | Yes | Semantic prompt or question to resolve. |
+| `document_ids` | Array[UUID] | No | Target scope restriction. If omitted, queries entire database. |
+| `top_k` | Integer | No | Count of contextual vector matches to fetch (Default: 5). |
+
+**Request Body:**
+
+```json
+{
+  "query": "What is the liability cap in this contract?",
+  "document_ids": ["423f7c46-9d2a-412e-a5be-9a3b2b1a8f33"],
+  "top_k": 3
+}
+
+```
+
+**Response (`200 OK` - `text/plain` Stream):**
+
+```text
+The liability cap specified under Section 9.1 of the agreement is limited to a maximum total of $50,000 [Page 12].
+
+__CITATIONS__
+[{"document_id": "423f7c46-9d2a-412e-a5be-9a3b2b1a8f33", "page": 12, "chunk_index": 24}]
+
+```
+
+---
+
+## 3. Database Schema Mapping
+
+```sql
+-- Core Table: Parent Document Tracking
+CREATE TABLE documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    filename VARCHAR NOT NULL,
+    upload_timestamp TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+    status VARCHAR NOT NULL DEFAULT 'Processing'
+);
+
+-- Vector Table: Overlapping Text Segment Chunks
+CREATE TABLE document_chunks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    chunk_index INTEGER NOT NULL,
+    page_number INTEGER NOT NULL,
+    text_content TEXT NOT NULL,
+    embedding VECTOR(1536) NOT NULL
+);
+
+-- Performance Optimization Indexes
+CREATE INDEX IF NOT EXISTS idx_documents_id ON documents(id);
+CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id ON document_chunks(document_id);
+
+```
+
+---
+
+## 4. Operational Setup
+
+### Environment Configuration (`.env`)
+
+```env
+DATABASE_URL=postgresql+asyncpg://postgres.[ID]:[PASS]@aws-0-region.pooler.supabase.com:6543/postgres
+OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxx
+
+```
+
+### Production Execution via Docker
+
+```bash
+# Build the production container
+docker build -t headless-doc-api .
+
+# Run container locally matching Render execution matrix
+docker run -p 8000:8000 --env-file .env headless-doc-api
+
+```
+
+---
+
+## 5. API Verification Interface (Headless Screenshots)
+
+Since this application functions entirely without a graphical user interface, execution status and endpoint verification are managed through the automated Swagger UI engine and Postman performance runners.
+
+### Interactive OpenAPI Specification (`/docs`)
+
+
+*Figure 5.1: Asynchronous endpoint verification mapping routing schemas, payloads, and parameter definitions directly inside the compiled browser layout.*
+
+### Stream Logging & Integration Verification
+
+```text
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:54211 - "POST /api/v1/documents/upload HTTP/1.1" 200 OK
+WARNING:  Page 4 has insufficient text. Triggering OCR fallback.
+INFO:     127.0.0.1:54232 - "POST /api/v1/documents/423f7c46/extract HTTP/1.1" 200 OK
+
+```
+
+*Figure 5.2: Terminal runtime capturing automated processing sequences, lazy-loading OCR execution, database writes, and transaction logging metrics.*
