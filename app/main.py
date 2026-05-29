@@ -30,7 +30,14 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"error": "Internal Server Error", "detail": "An unexpected system failure occurred."},
     )
-
+@app.get("/")
+async def root():
+    return {
+        "project": "DocQuery AI",
+        "description": "AI-powered document intelligence platform",
+        "docs": "/docs",
+        "health": "/health"
+    }
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "service": settings.PROJECT_NAME}

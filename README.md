@@ -16,7 +16,7 @@ The system allows users to upload PDF documents, automatically extract and proce
 
 ## Demo
 
-**Live API**: https://raggg.up.railway.app
+**Live Deployment**: https://raggg.up.railway.app
 
 **Swagger Documentation**: https://raggg.up.railway.app/docs
 
@@ -27,6 +27,20 @@ Many organizations store critical information inside contracts, invoices, report
 DocQuery AI transforms unstructured PDF documents into searchable knowledge by combining OCR, vector embeddings, semantic retrieval, and Retrieval-Augmented Generation (RAG).
 
 Users can upload documents, extract structured information, and ask natural language questions while receiving citation-backed responses grounded in the source material.
+
+## Screenshots
+
+### Document Upload
+
+![Upload](screenshots/upload-success.png)
+
+### Structured Extraction
+
+![Extract](screenshots/extract-success.png)
+
+### Semantic Query & Citations
+
+![RAG](screenshots/rag-response.png)
 
 ## Highlights
 
@@ -96,7 +110,7 @@ graph TD
 
 ### AI & Search
 
-* OpenAI
+* Vector Similarity Search
 * Sentence Transformers
 * Retrieval-Augmented Generation (RAG)
 
@@ -225,25 +239,3 @@ docker run -p 8000:8000 --env-file .env headless-doc-api
 
 ---
 
-## 4. API Verification Interface (Headless Screenshots)
-
-Since this application functions entirely without a graphical user interface, execution status and endpoint verification are managed through the automated Swagger UI engine and Postman performance runners.
-
-### Interactive OpenAPI Specification (`/docs`)
-
-
-*Figure 5.1: Asynchronous endpoint verification mapping routing schemas, payloads, and parameter definitions directly inside the compiled browser layout.*
-
-### Stream Logging & Integration Verification
-
-```text
-INFO:     Started server process [1]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     127.0.0.1:54211 - "POST /api/v1/documents/upload HTTP/1.1" 200 OK
-WARNING:  Page 4 has insufficient text. Triggering OCR fallback.
-INFO:     127.0.0.1:54232 - "POST /api/v1/documents/423f7c46/extract HTTP/1.1" 200 OK
-
-```
-
-*Figure 5.2: Terminal runtime capturing automated processing sequences, lazy-loading OCR execution, database writes, and transaction logging metrics.*
